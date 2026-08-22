@@ -1806,6 +1806,13 @@
                 );
               };
               (n(), setTimeout(n, 250), setTimeout(n, 1e3));
+              if (typeof ResizeObserver === "function") {
+                const t = new ResizeObserver(function () {
+                  window.requestAnimationFrame(n);
+                });
+                t.observe(document.documentElement);
+                if (document.body) t.observe(document.body);
+              }
             }
           })());
       })(e));

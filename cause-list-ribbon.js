@@ -385,7 +385,7 @@
     nav.setAttribute("aria-label", "स्थायी पेशी सूची खोज तथा navigation");
     nav.innerHTML =
       '<div class="cpr-inner"><form class="cpr-search" role="search">' +
-      '<input type="search" name="search" autocomplete="off" placeholder="नाम, मुद्दा नं., पक्ष वा विषय खोज्नुहोस्…" aria-label="सबै पेशी सूचीमा खोज्नुहोस्">' +
+      '<input type="search" name="search" autocomplete="off" placeholder="नाम, मुद्दा नं., पक्ष वा विषय खोज्नुहोस्…" aria-label="हालको सक्रिय webpage मा खोज्नुहोस्">' +
       '<span class="cpr-options"><label class="cpr-check" title="Nepali spelling variants मिलाएर खोज्छ"><input type="checkbox" name="normalizer" checked><span>Normalizer</span></label>' +
       '<label class="cpr-check" title="Attachment content मा smart search"><input type="checkbox" name="smart"><span>Smart</span></label>' +
       '<label class="cpr-check cpr-filter-check" hidden title="मिलेका table rows मात्र देखाउनुहोस्"><input type="checkbox" name="matched-rows" disabled><span>Matched rows</span></label></span>' +
@@ -412,6 +412,17 @@
       dateSelect = nav.querySelector("#cprDate"),
       current = parsePage(location.pathname),
       params = new URLSearchParams(location.search);
+    function currentSearchScope() {
+      if (current) return current.key;
+      const requestedMonth = String(params.get("month") || "").toLowerCase();
+      if (requestedMonth === "all" || /^\d{6}$/.test(requestedMonth)) return requestedMonth;
+      const embedded = Array.from(document.querySelectorAll("iframe[src]"))
+        .map((frame) => parsePage(frame.getAttribute("src")))
+        .filter(Boolean);
+      if (!embedded.length) return "";
+      const embeddedMonths = Array.from(new Set(embedded.map((page) => page.month)));
+      return embeddedMonths.length === 1 ? embeddedMonths[0] : "all";
+    }
     const searchHistory = window.CauseListSearchHistory.attach(search, "cprSearchHistory");
     search.value = params.get("search") || "";
     normalizer.checked = params.get("normalizer") !== "0";
@@ -445,6 +456,8 @@
       target.searchParams.set("search", query);
       target.searchParams.set("normalizer", normalizer.checked ? "1" : "0");
       target.searchParams.set("smart", smart.checked ? "1" : "0");
+      const scope = currentSearchScope();
+      if (scope) target.searchParams.set("scope", scope);
       location.href = target.href;
     });
     search.addEventListener("input", () => {

@@ -751,7 +751,7 @@
     .monthly-preview { display: grid; gap: 18px; margin-top: 14px; }
     .monthly-preview-item { padding: 10px; background: #fff; border: 1px solid #cfc6ba; border-radius: 12px; }
     .monthly-preview-item h4 { margin: 0 0 9px; color: var(--maroon); font-size: .94rem; }
-    .monthly-preview-item iframe { display: block; width: 100%; height: 1100px; background: #fff; border: 1px solid #d7cec4; border-radius: 8px; }
+    .monthly-preview-item iframe { display: block; width: 100%; height: 320px; background: #fff; border: 1px solid #d7cec4; border-radius: 8px; transition: height .16s ease; }
 
     .lookup-modal {
       position: fixed;
@@ -903,7 +903,7 @@
   <nav class="page-ribbon" aria-label="उपलब्ध पेशी सूची">
     <div class="page-ribbon-inner">
       <form class="advanced-search" id="advancedSearchForm" role="search">
-        <label class="sr-only" for="advancedSearchInput">सबै पेशी सूचीमा खोज्नुहोस्</label>
+        <label class="sr-only" for="advancedSearchInput">हालको सक्रिय webpage मा खोज्नुहोस्</label>
         <input class="advanced-search-input" type="search" id="advancedSearchInput" list="advancedSearchHistory" autocomplete="off" placeholder="नाम, मुद्दा नं., पक्ष वा विषय खोज्नुहोस्…">
         <datalist id="advancedSearchHistory"></datalist>
         <label class="normalizer-toggle" title="रि/री/ऋ, श/ष/स, व/ब, नासिक्य अक्षर, नेपाली अंक र space लाई मिलाएर खोज्छ">
@@ -1091,7 +1091,7 @@
     </div>
   </div>
 
-  <script src="cause-list-ribbon.js?v=search-history-2"></script>
+  <script src="cause-list-ribbon.js?v=active-page-search-3"></script>
   <script>
     (() => {
       "use strict";
@@ -1989,6 +1989,9 @@
             });
           });
         });
+        const scope = String(new URLSearchParams(location.search).get("scope") || "").toLowerCase();
+        if (/^\d{8}$/.test(scope)) return found.filter((item) => item.dateKey === scope);
+        if (/^\d{6}$/.test(scope)) return found.filter((item) => item.dateKey.startsWith(scope));
         return found;
       }
 
@@ -2188,17 +2191,19 @@
           ? causeMonthSelect.options[causeMonthSelect.selectedIndex].textContent
           : monthKey;
         const sections = outputs.map((item) =>
-          '\x3Csection class="month-item">\x3Ch2>' + escapeAttribute(item.label) + '\x3C/h2>' +
-          '\x3Ciframe title="' + escapeAttribute(item.label) + ' को पेशी सूची" src="' + escapeAttribute(item.href) + '">\x3C/iframe>\x3C/section>'
+          '\x3Csection class="month-item" data-date-key="' + escapeAttribute(item.dateKey) + '">\x3Ch2>' + escapeAttribute(item.label) + '\x3C/h2>' +
+          '\x3Ciframe title="' + escapeAttribute(item.label) + ' को पेशी सूची" src="' + escapeAttribute(item.href) + '" scrolling="no">\x3C/iframe>\x3C/section>'
         ).join("");
         return '\x3C!doctype html>\x3Chtml lang="ne">\x3Chead>\x3Cmeta charset="utf-8">\x3Cmeta name="viewport" content="width=device-width,initial-scale=1">' +
           '\x3Ctitle>' + escapeAttribute(monthLabel) + ' — सबै पेशी सूची\x3C/title>\x3Clink rel="stylesheet" href="cause-list-ribbon.css?v=compact-editor-1">\x3Cstyle>' +
           'html{color:#2f2724;background:#f4efe8;font-family:"Noto Sans Devanagari","Nirmala UI",sans-serif}body{margin:0;padding:18px}' +
           'header{position:relative;z-index:5;margin:-18px -18px 18px;padding:14px 20px;color:#fff;background:#5f1723;border-bottom:3px solid #c59132}' +
           'header h1{margin:0;font-size:1.12rem}.month-item{margin:0 0 22px;padding:12px;background:#fff;border:1px solid #d5cabe;border-radius:12px;box-shadow:0 8px 24px rgba(56,35,30,.08)}' +
-          '.month-item h2{margin:0 0 10px;color:#6d1a27;font-size:1rem}.month-item iframe{display:block;width:100%;height:1450px;border:1px solid #d5cabe;border-radius:8px;background:#fff}' +
-          '@media(max-width:700px){body{padding:8px}header{margin:-8px -8px 12px}.month-item{padding:7px}.month-item iframe{height:1100px}}' +
-          '\x3C/style>\x3C/head>\x3Cbody>\x3Cheader>\x3Ch1>' + escapeAttribute(monthLabel) + ' — सबै उपलब्ध पेशी सूची\x3C/h1>\x3C/header>' + sections + '\x3Cscript src="cause-list-ribbon.js?v=search-history-2">\x3C/script>\x3C/body>\x3C/html>';
+          '.month-item h2{margin:0 0 10px;color:#6d1a27;font-size:1rem}.month-item iframe{display:block;width:100%;height:320px;border:1px solid #d5cabe;border-radius:8px;background:#fff;transition:height .16s ease}' +
+          '@media(max-width:700px){body{padding:8px}header{margin:-8px -8px 12px}.month-item{padding:7px}}' +
+          '\x3C/style>\x3C/head>\x3Cbody>\x3Cheader>\x3Ch1>' + escapeAttribute(monthLabel) + ' — सबै उपलब्ध पेशी सूची\x3C/h1>\x3C/header>' + sections +
+          '\x3Cscript>addEventListener("message",function(event){var data=event.data||{};if(data.type!=="cob-month-height")return;var key=String(data.dateKey||"");var section=Array.from(document.querySelectorAll(".month-item")).find(function(node){return node.dataset.dateKey===key});var frame=section&&section.querySelector("iframe");var height=Number(data.height);if(!frame||(event.source&&event.source!==frame.contentWindow)||!Number.isFinite(height)||height<1)return;frame.style.height=Math.min(Math.max(Math.ceil(height)+4,120),24000)+"px"})\x3C/script>' +
+          '\x3Cscript src="cause-list-ribbon.js?v=active-page-search-3">\x3C/script>\x3C/body>\x3C/html>';
       }
 
       function renderMonthlyPreview(outputs) {
@@ -2255,7 +2260,7 @@
 
       function handleMonthlyManifestMessage(event) {
         const data = event.data;
-        if (!data || data.type !== "cob-month-manifest" || !monthlyOutputs.length) return;
+        if (!data || !monthlyOutputs.length) return;
         const dateKey = compactBsDate(data.dateKey);
         const item = monthlyOutputs.find((entry) => entry.dateKey === dateKey);
         if (!item) return;
@@ -2263,6 +2268,14 @@
           .find((node) => node.dataset.dateKey === dateKey);
         const frame = section && section.querySelector("iframe");
         if (!frame || (event.source && event.source !== frame.contentWindow)) return;
+        if (data.type === "cob-month-height") {
+          const height = Number(data.height);
+          if (Number.isFinite(height) && height >= 1) {
+            frame.style.height = Math.min(Math.max(Math.ceil(height) + 4, 120), 24000) + "px";
+          }
+          return;
+        }
+        if (data.type !== "cob-month-manifest") return;
         const stems = Array.isArray(data.stems) ? data.stems : [];
         stems.forEach((stem) => {
           const value = String(stem || "");
@@ -2493,25 +2506,60 @@
         return next && next.tagName === "TABLE" ? next : null;
       }
 
+      function isLayoutSpacer(node) {
+        if (!node) return false;
+        if (node.nodeType === 3) return !String(node.nodeValue || "").trim();
+        if (node.nodeType !== 1) return false;
+        if (/^(BR|HR)$/i.test(node.tagName)) return true;
+        if (!/^(CENTER|P)$/i.test(node.tagName) && !(node.tagName === "DIV" && node.classList.contains("pageTitle"))) return false;
+        if (cleanText(node.textContent)) return false;
+        return !node.querySelector("table,img,svg,canvas,iframe,input,select,textarea,button,a[href]");
+      }
+
+      function removeNodeCompactly(node) {
+        if (!node || !node.parentNode) return;
+        const parent = node.parentNode;
+        let previous = node.previousSibling;
+        let next = node.nextSibling;
+        node.remove();
+        while (previous && isLayoutSpacer(previous)) {
+          const candidate = previous;
+          previous = candidate.previousSibling;
+          candidate.remove();
+        }
+        while (next && isLayoutSpacer(next)) {
+          const candidate = next;
+          next = candidate.nextSibling;
+          candidate.remove();
+        }
+        if (parent.normalize) parent.normalize();
+      }
+
+      function compactFilteredDocument(doc) {
+        if (!doc || !doc.body) return;
+        doc.querySelectorAll("br + br").forEach((node) => {
+          if (!node.closest("table")) node.remove();
+        });
+        Array.from(doc.querySelectorAll("center, p, div.pageTitle")).forEach((node) => {
+          if (node.closest("table") || !node.isConnected || !isLayoutSpacer(node)) return;
+          node.remove();
+        });
+        doc.body.normalize();
+      }
+
       function removeBenchGroup(headerTable) {
         const group = headerTable && headerTable.dataset ? headerTable.dataset.cobBenchGroup : "";
         if (group && headerTable.ownerDocument) {
           Array.from(headerTable.ownerDocument.querySelectorAll("table[data-cob-bench-group]")).forEach((table) => {
             if (table === headerTable || table.dataset.cobBenchGroup !== group) return;
-            const after = table.nextElementSibling;
-            table.remove();
-            if (after && after.tagName === "BR") after.remove();
+            removeNodeCompactly(table);
           });
-          headerTable.remove();
+          removeNodeCompactly(headerTable);
           return;
         }
         const recordTable = findNextTable(headerTable);
-        if (recordTable) {
-          const afterRecord = recordTable.nextElementSibling;
-          recordTable.remove();
-          if (afterRecord && afterRecord.tagName === "BR") afterRecord.remove();
-        }
-        headerTable.remove();
+        if (recordTable) removeNodeCompactly(recordTable);
+        removeNodeCompactly(headerTable);
       }
 
       function installCourtDocumentBuilder(doc, config) {
@@ -2542,7 +2590,7 @@
         (doc.body || doc.documentElement).appendChild(configNode);
         const ribbonRuntime = doc.createElement("script");
         ribbonRuntime.id = "cause-list-ribbon-runtime";
-        ribbonRuntime.src = "cause-list-ribbon.js?v=search-history-2";
+        ribbonRuntime.src = "cause-list-ribbon.js?v=active-page-search-3";
         (doc.body || doc.documentElement).appendChild(ribbonRuntime);
         const dateLibrary = doc.createElement("script");
         dateLibrary.setAttribute("data-cob-nepali-date", "3.4.0");
@@ -2550,8 +2598,8 @@
         (doc.body || doc.documentElement).appendChild(dateLibrary);
         const runtime = doc.createElement("script");
         runtime.id = "court-order-builder-runtime";
-        runtime.setAttribute("data-version", "8");
-        runtime.src = "cause-list-runtime.js?v=8";
+        runtime.setAttribute("data-version", "9");
+        runtime.src = "cause-list-runtime.js?v=9";
         (doc.body || doc.documentElement).appendChild(runtime);
         const proofreaderRuntime = doc.createElement("script");
         proofreaderRuntime.id = "nepali-proofreader-engine-runtime";
@@ -2917,9 +2965,7 @@
           const selection = rowFilterSelection(entry.key);
           if (selection.mode === "ALL-") {
             allMinusGroups.add(entry.table.dataset.cobBenchGroup || "");
-            const afterTable = entry.table.nextElementSibling;
-            entry.table.remove();
-            if (afterTable && afterTable.tagName === "BR") afterTable.remove();
+            removeNodeCompactly(entry.table);
             excludedTables += 1;
             return;
           }
@@ -2963,9 +3009,7 @@
             return judge && isTarget(judge.textContent);
           });
           if (!headerTable) return;
-          const afterHeader = headerTable.nextElementSibling;
-          headerTable.remove();
-          if (afterHeader && afterHeader.tagName === "BR") afterHeader.remove();
+          removeNodeCompactly(headerTable);
           excludedBenchHeaders += 1;
         });
 
@@ -2992,6 +3036,8 @@
         if (!targetFound) {
           throw new Error(`Source code मा “${targetName}” को विवरण भेटिएन।`);
         }
+
+        compactFilteredDocument(parsed);
 
         const sourceMeta = extractSourceMeta(source);
         stripSourceChrome(parsed);
