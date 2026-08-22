@@ -308,7 +308,7 @@
   }
   if (window.CauseListPersistentRibbon) return;
   const CACHE_KEY = "cause-list-auto-files-v1";
-  const FALLBACK_FILES = ["index20830212.html", index20830302.html, "index20830415.html"];
+  const FALLBACK_FILES = ["index20830212.html", "index20830302.html", "index20830415.html"];
   const MONTH_NAMES = [
     "वैशाख", "जेठ", "असार", "साउन", "भदौ", "असोज",
     "कात्तिक", "मंसिर", "पुस", "माघ", "फागुन", "चैत",
